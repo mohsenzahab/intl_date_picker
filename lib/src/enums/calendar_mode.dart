@@ -1,0 +1,4 @@
+enum Calendar {
+  gregorian,
+  jalali,
+}
