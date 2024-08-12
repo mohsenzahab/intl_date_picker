@@ -499,8 +499,8 @@ class _IntlDatePickerDialogState extends State<IntlDatePickerDialog>
         ? colorScheme.onPrimary
         : colorScheme.onSurface;
     final TextStyle? dateStyle = orientation == Orientation.landscape
-        ? textTheme.headline5?.copyWith(color: onPrimarySurface)
-        : textTheme.headline4?.copyWith(color: onPrimarySurface);
+        ? textTheme.headlineSmall?.copyWith(color: onPrimarySurface)
+        : textTheme.headlineMedium?.copyWith(color: onPrimarySurface);
 
     final Widget actions = Container(
       alignment: AlignmentDirectional.centerEnd,
@@ -767,7 +767,7 @@ class _DatePickerHeader extends StatelessWidget {
     final Color onPrimarySurfaceColor =
         isDark ? colorScheme.onSurface : colorScheme.onPrimary;
 
-    final TextStyle? helpStyle = textTheme.overline?.copyWith(
+    final TextStyle? helpStyle = textTheme.labelSmall?.copyWith(
       color: onPrimarySurfaceColor,
     );
 
@@ -1046,7 +1046,7 @@ Future<DateTimeRange?> showJalaliDateRangePicker({
   TransitionBuilder? builder,
 }) async {
   assert(
-    initialDateRange == null || (initialDateRange.end != null),
+    initialDateRange == null,
     'initialDateRange must be null or have non-null start and end dates.',
   );
   assert(
@@ -1592,7 +1592,7 @@ class _CalendarRangePickerDialog extends StatelessWidget {
         localizations, selectedStartDate, selectedEndDate);
     final String endDateText = _formatRangeEndDate(
         localizations, selectedStartDate, selectedEndDate, DateTime.now());
-    final TextStyle? headlineStyle = textTheme.headline5;
+    final TextStyle? headlineStyle = textTheme.headlineSmall;
     final TextStyle? startDateStyle = headlineStyle?.apply(
       color: selectedStartDate != null
           ? headerForeground
@@ -1602,7 +1602,7 @@ class _CalendarRangePickerDialog extends StatelessWidget {
       color:
           selectedEndDate != null ? headerForeground : headerDisabledForeground,
     );
-    final TextStyle saveButtonStyle = textTheme.button!.apply(
+    final TextStyle saveButtonStyle = textTheme.labelLarge!.apply(
       color: onConfirm != null ? headerForeground : headerDisabledForeground,
     );
 
@@ -1638,7 +1638,7 @@ class _CalendarRangePickerDialog extends StatelessWidget {
                     children: <Widget>[
                       Text(
                         helpText,
-                        style: textTheme.overline!.apply(
+                        style: textTheme.labelSmall!.apply(
                           color: headerForeground,
                         ),
                       ),
@@ -2125,7 +2125,7 @@ class _DayHeaders extends StatelessWidget {
     final ThemeData themeData = Theme.of(context);
     final ColorScheme colorScheme = themeData.colorScheme;
     final TextStyle textStyle =
-        themeData.textTheme.subtitle2!.apply(color: colorScheme.onSurface);
+        themeData.textTheme.titleSmall!.apply(color: colorScheme.onSurface);
     final MaterialLocalizations localizations =
         MaterialLocalizations.of(context);
     final List<Widget> labels = _getDayHeaders(textStyle, localizations);
@@ -2423,7 +2423,7 @@ class _MonthItemState extends State<_MonthItem> {
         dayToBuild.isBefore(widget.firstDate);
 
     BoxDecoration? decoration;
-    TextStyle? itemStyle = textTheme.bodyText2;
+    TextStyle? itemStyle = textTheme.bodyMedium;
 
     final bool isRangeSelected =
         widget.selectedDateStart != null && widget.selectedDateEnd != null;
@@ -2440,7 +2440,7 @@ class _MonthItemState extends State<_MonthItem> {
     if (isSelectedDayStart || isSelectedDayEnd) {
       // The selected start and end dates gets a circle background
       // highlight, and a contrasting text color.
-      itemStyle = textTheme.bodyText2?.apply(color: colorScheme.onPrimary);
+      itemStyle = textTheme.bodyMedium?.apply(color: colorScheme.onPrimary);
       decoration = BoxDecoration(
         color: colorScheme.primary,
         shape: BoxShape.circle,
@@ -2465,12 +2465,12 @@ class _MonthItemState extends State<_MonthItem> {
         textDirection: textDirection,
       );
     } else if (isDisabled) {
-      itemStyle = textTheme.bodyText2
+      itemStyle = textTheme.bodyMedium
           ?.apply(color: colorScheme.onSurface.withOpacity(0.38));
     } else if (DateUtils.isSameDay(widget.currentDate, dayToBuild)) {
       // The current day gets a different text color and a circle stroke
       // border.
-      itemStyle = textTheme.bodyText2?.apply(color: colorScheme.primary);
+      itemStyle = textTheme.bodyMedium?.apply(color: colorScheme.primary);
       decoration = BoxDecoration(
         border: Border.all(color: colorScheme.primary, width: 1),
         shape: BoxShape.circle,
@@ -2620,7 +2620,7 @@ class _MonthItemState extends State<_MonthItem> {
           child: ExcludeSemantics(
             child: Text(
               localizations.formatMonthYear(widget.displayedMonth),
-              style: textTheme.bodyText2!
+              style: textTheme.bodyMedium!
                   .apply(color: themeData.colorScheme.onSurface),
             ),
           ),
@@ -2775,8 +2775,8 @@ class _InputDateRangePickerDialog extends StatelessWidget {
             ? colorScheme.onPrimary
             : colorScheme.onSurface;
     final TextStyle? dateStyle = orientation == Orientation.landscape
-        ? textTheme.headline5?.apply(color: onPrimarySurfaceColor)
-        : textTheme.headline4?.apply(color: onPrimarySurfaceColor);
+        ? textTheme.headlineSmall?.apply(color: onPrimarySurfaceColor)
+        : textTheme.headlineMedium?.apply(color: onPrimarySurfaceColor);
     final String dateText = _formatDateRange(
         context, selectedStartDate, selectedEndDate, currentDate!);
     final String semanticDateText = selectedStartDate != null &&
