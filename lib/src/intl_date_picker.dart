@@ -1512,7 +1512,7 @@ class _IntlDateRangePickerDialogState extends State<IntlDateRangePickerDialog>
           cancelText: widget.cancelText ?? localizations.cancelButtonLabel,
           helpText: widget.helpText ?? localizations.dateRangePickerHelpText,
         );
-        final DialogTheme dialogTheme = Theme.of(context).dialogTheme;
+        final DialogThemeData dialogTheme = Theme.of(context).dialogTheme;
         size = orientation == Orientation.portrait
             ? _inputPortraitDialogSize
             : _inputRangeLandscapeDialogSize;
