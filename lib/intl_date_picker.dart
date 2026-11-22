@@ -1,4 +1,4 @@
-library intl_date_picker;
+library;
 
 export 'src/enums/calendar_mode.dart';
 export 'src/intl_calendar_date_picker.dart';

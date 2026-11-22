@@ -1,7 +1,7 @@
 class StringsEn {
-  final List<String> jalaliMonthNames = [
+  static const List<String> defaultJalaliMonthNames = [
     'Farvardin',
-    'Ordibehesh',
+    'Ordibehesht',
     'Khordad',
     'Tir',
     'Mordad',
@@ -11,6 +11,8 @@ class StringsEn {
     'Azar',
     'Dey',
     'Bahman',
-    'Esfand'
+    'Esfand',
   ];
+
+  List<String> get jalaliMonthNames => defaultJalaliMonthNames;
 }

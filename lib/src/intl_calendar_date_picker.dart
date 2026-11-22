@@ -78,7 +78,7 @@ class IntlCalendarDatePicker extends StatefulWidget {
   /// If [selectableDayPredicate] is non-null, it must return `true` for the
   /// [initialDate].
   IntlCalendarDatePicker({
-    Key? key,
+    super.key,
     required DateTime initialDate,
     required DateTime firstDate,
     required DateTime lastDate,
@@ -91,8 +91,7 @@ class IntlCalendarDatePicker extends StatefulWidget {
   })  : initialDate = IntlDateUtils.dateOnly(initialDate),
         firstDate = IntlDateUtils.dateOnly(firstDate),
         lastDate = IntlDateUtils.dateOnly(lastDate),
-        currentDate = IntlDateUtils.dateOnly(currentDate ?? DateTime.now()),
-        super(key: key) {
+        currentDate = IntlDateUtils.dateOnly(currentDate ?? DateTime.now()) {
     assert(
       !this.lastDate.isBefore(this.firstDate),
       'lastDate ${this.lastDate} must be on or after firstDate ${this.firstDate}.',
@@ -171,9 +170,14 @@ class _IntlCalendarDatePickerState extends State<IntlCalendarDatePicker> {
       _mode = widget.initialCalendarMode;
     }
     if (!IntlDateUtils.isSameDay(widget.initialDate, oldWidget.initialDate)) {
-      _currentDisplayedMonthDate = DateTime(widget.initialDate.year,
-          widget.initialDate.month, widget.initialDate.day);
+      _currentDisplayedMonthDate =
+          widget.initialDate.monthStartDate(calendarMode);
       _selectedDate = widget.initialDate;
+    }
+    if (widget.calendarMode != oldWidget.calendarMode) {
+      calendarMode = widget.calendarMode;
+      _currentDisplayedMonthDate =
+          _selectedDate.monthStartDate(calendarMode);
     }
   }
 
@@ -187,8 +191,12 @@ class _IntlCalendarDatePickerState extends State<IntlCalendarDatePicker> {
     _textDirection = Directionality.of(context);
     if (!_announcedInitialDate) {
       _announcedInitialDate = true;
-      SemanticsService.announce(
-        _localizations.formatFullDate(_selectedDate),
+      final String announcement = calendarMode == Calendar.jalali
+          ? IntlDateUtils.formatMediumDate(context, _selectedDate, calendarMode)
+          : _localizations.formatFullDate(_selectedDate);
+      SemanticsService.sendAnnouncement(
+        View.of(context),
+        announcement,
         _textDirection,
       );
     }
@@ -213,13 +221,21 @@ class _IntlCalendarDatePickerState extends State<IntlCalendarDatePicker> {
     setState(() {
       _mode = mode;
       if (_mode == DatePickerMode.day) {
-        SemanticsService.announce(
-          _localizations.formatMonthYear(_selectedDate),
+        final String announcement = calendarMode == Calendar.jalali
+            ? IntlDateUtils.formatMonthYear(context, _selectedDate, calendarMode)
+            : _localizations.formatMonthYear(_selectedDate);
+        SemanticsService.sendAnnouncement(
+          View.of(context),
+          announcement,
           _textDirection,
         );
       } else {
-        SemanticsService.announce(
-          _localizations.formatYear(_selectedDate),
+        final String announcement = calendarMode == Calendar.jalali
+            ? IntlDateUtils.formatYear(context, _selectedDate, calendarMode)
+            : _localizations.formatYear(_selectedDate);
+        SemanticsService.sendAnnouncement(
+          View.of(context),
+          announcement,
           _textDirection,
         );
       }
@@ -228,9 +244,10 @@ class _IntlCalendarDatePickerState extends State<IntlCalendarDatePicker> {
 
   void _handleMonthChanged(DateTime date) {
     setState(() {
-      if (_currentDisplayedMonthDate.year != date.year ||
-          _currentDisplayedMonthDate.month != date.month) {
-        _currentDisplayedMonthDate = DateTime(date.year, date.month, date.day);
+      final DateTime newMonthDate = date.monthStartDate(calendarMode);
+      if (!IntlDateUtils.isSameMonth(
+          _currentDisplayedMonthDate, newMonthDate, calendarMode)) {
+        _currentDisplayedMonthDate = newMonthDate;
         widget.onDisplayedMonthChanged?.call(_currentDisplayedMonthDate);
       }
     });
@@ -277,7 +294,7 @@ class _IntlCalendarDatePickerState extends State<IntlCalendarDatePicker> {
       case DatePickerMode.year:
         return Padding(
           padding: const EdgeInsets.only(top: _subHeaderHeight),
-          child: YearPicker(
+          child: IntlYearPicker(
             key: _yearPickerKey,
             currentDate: widget.currentDate,
             firstDate: widget.firstDate,
@@ -378,7 +395,7 @@ class _DatePickerModeToggleButtonState
   Widget build(BuildContext context) {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
     final TextTheme textTheme = Theme.of(context).textTheme;
-    final Color controlColor = colorScheme.onSurface.withOpacity(0.60);
+    final Color controlColor = colorScheme.onSurface.withValues(alpha: 0.60);
 
     return Container(
       padding: const EdgeInsetsDirectional.only(start: 16, end: 4),
@@ -438,7 +455,7 @@ class _DatePickerModeToggleButtonState
 class _MonthPicker extends StatefulWidget {
   /// Creates a month picker.
   _MonthPicker({
-    Key? key,
+    super.key,
     required this.initialMonth,
     required this.currentDate,
     required this.firstDate,
@@ -450,8 +467,7 @@ class _MonthPicker extends StatefulWidget {
     required this.calendarMode,
   })  : assert(!firstDate.isAfter(lastDate)),
         assert(!selectedDate.isBefore(firstDate)),
-        assert(!selectedDate.isAfter(lastDate)),
-        super(key: key);
+        assert(!selectedDate.isAfter(lastDate));
 
   /// The initial month to display.
   final DateTime initialMonth;
@@ -546,6 +562,12 @@ class _MonthPickerState extends State<_MonthPicker> {
   @override
   void didUpdateWidget(_MonthPicker oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (widget.calendarMode != oldWidget.calendarMode) {
+      calendarMode = widget.calendarMode;
+      _currentMonth = widget.initialMonth.monthStartDate(calendarMode);
+      _previousMonthDate = _currentMonth.addMonth(-1, calendarMode);
+      _nextMonthDate = _currentMonth.addMonth(1, calendarMode);
+    }
     if (widget.initialMonth != oldWidget.initialMonth &&
         widget.initialMonth != _currentMonth) {
       // We can't interrupt this widget build with a scroll, so do it next frame
@@ -572,8 +594,7 @@ class _MonthPickerState extends State<_MonthPicker> {
       final DateTime monthDate = IntlDateUtils.addMonthsToMonthDate(
           widget.firstDate, monthPage, calendarMode);
       if (!IntlDateUtils.isSameMonth(_currentMonth, monthDate, calendarMode)) {
-        _currentMonth =
-            DateTime(monthDate.year, monthDate.month, monthDate.day);
+        _currentMonth = monthDate.monthStartDate(calendarMode);
         _previousMonthDate = _currentMonth.addMonth(-1, calendarMode);
         _nextMonthDate = _currentMonth.addMonth(1, calendarMode);
         widget.onDisplayedMonthChanged(_currentMonth);
@@ -583,7 +604,10 @@ class _MonthPickerState extends State<_MonthPicker> {
           // We have navigated to a new month with the grid focused, but the
           // focused day is not in this month. Choose a new one trying to keep
           // the same day of the month.
-          _focusedDay = _focusableDayForMonth(_currentMonth, _focusedDay!.day);
+          final int preferredDay = calendarMode == Calendar.jalali
+              ? Jalali.fromDateTime(_focusedDay!).day
+              : _focusedDay!.day;
+          _focusedDay = _focusableDayForMonth(_currentMonth, preferredDay);
         }
       }
     });
@@ -596,16 +620,19 @@ class _MonthPickerState extends State<_MonthPicker> {
   /// no dates are selectable in the month, then it will return null.
   DateTime? _focusableDayForMonth(DateTime month, int preferredDay) {
     final int daysInMonth = IntlDateUtils.getDaysInMonth(month, calendarMode);
+    final DateTime monthStart = month.monthStartDate(calendarMode);
 
     // Can we use the preferred day in this month?
-    if (preferredDay <= daysInMonth) {
-      final DateTime newFocus = DateTime(month.year, month.month, preferredDay);
+    if (preferredDay <= daysInMonth && preferredDay >= 1) {
+      final DateTime newFocus =
+          IntlDateUtils.addDaysToDate(monthStart, preferredDay - 1, calendarMode);
       if (_isSelectable(newFocus)) return newFocus;
     }
 
     // Start at the 1st and take the first selectable date.
     for (int day = 1; day <= daysInMonth; day++) {
-      final DateTime newFocus = DateTime(month.year, month.month, day);
+      final DateTime newFocus =
+          IntlDateUtils.addDaysToDate(monthStart, day - 1, calendarMode);
       if (_isSelectable(newFocus)) return newFocus;
     }
     return null;
@@ -614,8 +641,12 @@ class _MonthPickerState extends State<_MonthPicker> {
   /// Navigate to the next month.
   void _handleNextMonth() {
     if (!_isDisplayingLastMonth) {
-      SemanticsService.announce(
-        _localizations.formatMonthYear(_nextMonthDate),
+      final String announcement = calendarMode == Calendar.jalali
+          ? IntlDateUtils.formatMonthYear(context, _nextMonthDate, calendarMode)
+          : _localizations.formatMonthYear(_nextMonthDate);
+      SemanticsService.sendAnnouncement(
+        View.of(context),
+        announcement,
         _textDirection,
       );
       _pageController.nextPage(
@@ -628,8 +659,12 @@ class _MonthPickerState extends State<_MonthPicker> {
   /// Navigate to the previous month.
   void _handlePreviousMonth() {
     if (!_isDisplayingFirstMonth) {
-      SemanticsService.announce(
-        _localizations.formatMonthYear(_previousMonthDate),
+      final String announcement = calendarMode == Calendar.jalali
+          ? IntlDateUtils.formatMonthYear(context, _previousMonthDate, calendarMode)
+          : _localizations.formatMonthYear(_previousMonthDate);
+      SemanticsService.sendAnnouncement(
+        View.of(context),
+        announcement,
         _textDirection,
       );
       _pageController.previousPage(
@@ -656,16 +691,16 @@ class _MonthPickerState extends State<_MonthPicker> {
 
   /// True if the earliest allowable month is displayed.
   bool get _isDisplayingFirstMonth {
-    return !_currentMonth.isAfter(
-      DateTime(widget.firstDate.year, widget.firstDate.month),
-    );
+    final DateTime firstMonthStart =
+        widget.firstDate.monthStartDate(calendarMode);
+    return !_currentMonth.isAfter(firstMonthStart);
   }
 
   /// True if the latest allowable month is displayed.
   bool get _isDisplayingLastMonth {
-    return !_currentMonth.isBefore(
-      DateTime(widget.lastDate.year, widget.lastDate.month),
-    );
+    final DateTime lastMonthStart =
+        widget.lastDate.monthStartDate(calendarMode);
+    return !_currentMonth.isBefore(lastMonthStart);
   }
 
   /// Handler for when the overall day grid obtains or loses focus.
@@ -677,8 +712,11 @@ class _MonthPickerState extends State<_MonthPicker> {
           _focusedDay = widget.selectedDate;
         } else if (IntlDateUtils.isSameMonth(
             widget.currentDate, _currentMonth, calendarMode)) {
+          final int preferredDay = calendarMode == Calendar.jalali
+              ? Jalali.fromDateTime(widget.currentDate).day
+              : widget.currentDate.day;
           _focusedDay =
-              _focusableDayForMonth(_currentMonth, widget.currentDate.day);
+              _focusableDayForMonth(_currentMonth, preferredDay);
         } else {
           _focusedDay = _focusableDayForMonth(_currentMonth, 1);
         }
@@ -787,7 +825,7 @@ class _MonthPickerState extends State<_MonthPicker> {
     final String nextTooltipText =
         '${_localizations.nextMonthTooltip} ${_localizations.formatMonthYear(_nextMonthDate)}';
     final Color controlColor =
-        Theme.of(context).colorScheme.onSurface.withOpacity(0.60);
+        Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.60);
 
     return Semantics(
       child: Column(
@@ -807,23 +845,61 @@ class _MonthPickerState extends State<_MonthPicker> {
                       _isDisplayingFirstMonth ? null : _handlePreviousMonth,
                 ),
                 DropdownButtonHideUnderline(
-                  child: DropdownButton<int>(
-                    isDense: true,
-                    value: IntlDateUtils.getMonthNumber(
-                        _currentMonth, calendarMode),
-                    items: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-                        .map((monthNumber) => DropdownMenuItem<int>(
-                            value: monthNumber,
-                            child: Text(
-                              IntlDateUtils.getMonthName(
-                                  context, monthNumber, calendarMode),
-                              textAlign: TextAlign.center,
-                            )))
-                        .toList(),
-                    onChanged: (value) {
-                      if (value == null) return;
-                      _showMonth(IntlDateUtils.getMonthDate(
-                          _currentMonth, value, calendarMode));
+                  child: Builder(
+                    builder: (BuildContext context) {
+                      final int currentYear = calendarMode == Calendar.jalali
+                          ? Jalali.fromDateTime(_currentMonth).year
+                          : _currentMonth.year;
+                      final int firstYear = calendarMode == Calendar.jalali
+                          ? Jalali.fromDateTime(widget.firstDate).year
+                          : widget.firstDate.year;
+                      final int lastYear = calendarMode == Calendar.jalali
+                          ? Jalali.fromDateTime(widget.lastDate).year
+                          : widget.lastDate.year;
+
+                      final int minMonth = (currentYear == firstYear)
+                          ? IntlDateUtils.getMonthNumber(widget.firstDate, calendarMode)
+                          : 1;
+                      final int maxMonth = (currentYear == lastYear)
+                          ? IntlDateUtils.getMonthNumber(widget.lastDate, calendarMode)
+                          : 12;
+
+                      int currentMonthNumber = IntlDateUtils.getMonthNumber(
+                          _currentMonth, calendarMode);
+                      if (currentMonthNumber < minMonth) {
+                        currentMonthNumber = minMonth;
+                      } else if (currentMonthNumber > maxMonth) {
+                        currentMonthNumber = maxMonth;
+                      }
+
+                      return DropdownButton<int>(
+                        isDense: true,
+                        value: currentMonthNumber,
+                        items: [for (int m = minMonth; m <= maxMonth; m++) m]
+                            .map((monthNumber) => DropdownMenuItem<int>(
+                                value: monthNumber,
+                                child: Text(
+                                  IntlDateUtils.getMonthName(
+                                      context, monthNumber, calendarMode),
+                                  textAlign: TextAlign.center,
+                                )))
+                            .toList(),
+                        onChanged: (value) {
+                          if (value == null) return;
+                          DateTime target = IntlDateUtils.getMonthDate(
+                              _currentMonth, value, calendarMode);
+                          final DateTime firstMonth =
+                              widget.firstDate.monthStartDate(calendarMode);
+                          final DateTime lastMonth =
+                              widget.lastDate.monthStartDate(calendarMode);
+                          if (target.isBefore(firstMonth)) {
+                            target = firstMonth;
+                          } else if (target.isAfter(lastMonth)) {
+                            target = lastMonth;
+                          }
+                          _showMonth(target);
+                        },
+                      );
                     },
                   ),
                 ),
@@ -869,10 +945,9 @@ class _MonthPickerState extends State<_MonthPicker> {
 /// what the currently focused date (if any) should be.
 class _FocusedDate extends InheritedWidget {
   const _FocusedDate({
-    Key? key,
-    required Widget child,
+    required super.child,
     this.date,
-  }) : super(key: key, child: child);
+  });
 
   final DateTime? date;
 
@@ -895,7 +970,7 @@ class _FocusedDate extends InheritedWidget {
 class _DayPicker extends StatefulWidget {
   /// Creates a day picker.
   _DayPicker({
-    Key? key,
+    super.key,
     required this.currentDate,
     required this.displayedMonth,
     required this.firstDate,
@@ -906,8 +981,7 @@ class _DayPicker extends StatefulWidget {
     required this.calendarMode,
   })  : assert(!firstDate.isAfter(lastDate)),
         assert(!selectedDate.isBefore(firstDate)),
-        assert(!selectedDate.isAfter(lastDate)),
-        super(key: key);
+        assert(!selectedDate.isAfter(lastDate));
 
   /// The currently selected date.
   ///
@@ -968,7 +1042,21 @@ class _DayPickerState extends State<_DayPicker> {
     if (focusedDate != null &&
         IntlDateUtils.isSameMonth(
             widget.displayedMonth, focusedDate, calendarMode)) {
-      _dayFocusNodes[focusedDate.day - 1].requestFocus();
+      final int dayIndex = (calendarMode == Calendar.jalali
+              ? Jalali.fromDateTime(focusedDate).day
+              : focusedDate.day) -
+          1;
+      if (dayIndex >= 0 && dayIndex < _dayFocusNodes.length) {
+        _dayFocusNodes[dayIndex].requestFocus();
+      }
+    }
+  }
+
+  @override
+  void didUpdateWidget(_DayPicker oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.calendarMode != oldWidget.calendarMode) {
+      calendarMode = widget.calendarMode;
     }
   }
 
@@ -1001,33 +1089,41 @@ class _DayPickerState extends State<_DayPicker> {
   List<Widget> _dayHeaders(
       TextStyle? headerStyle, MaterialLocalizations localizations) {
     final List<Widget> result = <Widget>[];
-    for (int i = IntlDateUtils.firstDayOfWeek(calendarMode);
+    final int startOfWeek =
+        IntlDateUtils.firstDayOfWeek(calendarMode, localizations);
+    for (int i = startOfWeek;
         true;
         i = (i + 1) % 7) {
       final String weekday = localizations.narrowWeekdays[i];
       result.add(ExcludeSemantics(
         child: Center(child: Text(weekday, style: headerStyle)),
       ));
-      if (i == (IntlDateUtils.firstDayOfWeek(calendarMode) - 1) % 7) break;
+      if (i == (startOfWeek - 1) % 7) break;
     }
     return result;
   }
 
   @override
   Widget build(BuildContext context) {
+    final DatePickerThemeData datePickerTheme = DatePickerTheme.of(context);
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
     final MaterialLocalizations localizations =
         MaterialLocalizations.of(context);
     final TextTheme textTheme = Theme.of(context).textTheme;
-    final TextStyle? headerStyle = textTheme.bodySmall?.apply(
-      color: colorScheme.onSurface.withOpacity(0.60),
+    final TextStyle? headerStyle = (datePickerTheme.weekdayStyle ?? textTheme.bodySmall)?.apply(
+      color: colorScheme.onSurface.withValues(alpha: 0.60),
     );
-    final TextStyle dayStyle = textTheme.bodySmall!;
-    final Color enabledDayColor = colorScheme.onSurface.withOpacity(0.87);
-    final Color disabledDayColor = colorScheme.onSurface.withOpacity(0.38);
-    final Color selectedDayColor = colorScheme.onPrimary;
-    final Color selectedDayBackground = colorScheme.primary;
-    final Color todayColor = colorScheme.primary;
+    final TextStyle dayStyle = datePickerTheme.dayStyle ?? textTheme.bodySmall!;
+    final Color enabledDayColor = datePickerTheme.dayForegroundColor?.resolve(const <WidgetState>{}) ??
+        colorScheme.onSurface.withValues(alpha: 0.87);
+    final Color disabledDayColor = datePickerTheme.dayForegroundColor?.resolve(const <WidgetState>{WidgetState.disabled}) ??
+        colorScheme.onSurface.withValues(alpha: 0.38);
+    final Color selectedDayColor = datePickerTheme.dayForegroundColor?.resolve(const <WidgetState>{WidgetState.selected}) ??
+        colorScheme.onPrimary;
+    final Color selectedDayBackground = datePickerTheme.dayBackgroundColor?.resolve(const <WidgetState>{WidgetState.selected}) ??
+        colorScheme.primary;
+    final Color todayColor = datePickerTheme.todayForegroundColor?.resolve(const <WidgetState>{}) ??
+        colorScheme.primary;
 
     final int daysInMonth =
         IntlDateUtils.getDaysInMonth(widget.displayedMonth, calendarMode);
@@ -1045,7 +1141,8 @@ class _DayPickerState extends State<_DayPicker> {
       if (day < 1) {
         dayItems.add(Container());
       } else {
-        final DateTime dayToBuild = monthFirstDay.add(Duration(days: day - 1));
+        final DateTime dayToBuild =
+            IntlDateUtils.addDaysToDate(monthFirstDay, day - 1, calendarMode);
         final bool isDisabled = dayToBuild.isAfter(widget.lastDate) ||
             dayToBuild.isBefore(widget.firstDate) ||
             (widget.selectableDayPredicate != null &&
@@ -1090,11 +1187,16 @@ class _DayPickerState extends State<_DayPicker> {
             child: dayWidget,
           );
         } else {
+          final String fullDateStr = calendarMode == Calendar.jalali
+              ? IntlDateUtils.formatMediumDate(
+                  context, dayToBuild, calendarMode)
+              : localizations.formatFullDate(dayToBuild);
+
           dayWidget = InkResponse(
             focusNode: _dayFocusNodes[day - 1],
             onTap: () => widget.onChanged(dayToBuild),
             radius: _dayPickerRowHeight / 2 + 4,
-            splashColor: selectedDayBackground.withOpacity(0.38),
+            splashColor: selectedDayBackground.withValues(alpha: 0.38),
             child: Semantics(
               // We want the day of month to be spoken first irrespective of the
               // locale-specific preferences or TextDirection. This is because
@@ -1103,7 +1205,7 @@ class _DayPickerState extends State<_DayPicker> {
               // for the day of month. To do that we prepend day of month to the
               // formatted full date.
               label:
-                  '${localizations.formatDecimal(day)}, ${localizations.formatFullDate(dayToBuild)}',
+                  '${localizations.formatDecimal(day)}, $fullDateStr',
               selected: isSelectedDay,
               excludeSemantics: true,
               child: dayWidget,
@@ -1171,13 +1273,13 @@ const _DayPickerGridDelegate _dayPickerGridDelegate = _DayPickerGridDelegate();
 ///  * [showDatePicker], which shows a dialog containing a Material Design
 ///    date picker.
 ///
-class YearPicker extends StatefulWidget {
+class IntlYearPicker extends StatefulWidget {
   /// Creates a year picker.
   ///
   /// The [firstDate], [lastDate], [selectedDate], and [onChanged]
   /// arguments must be non-null. The [lastDate] must be after the [firstDate].
-  YearPicker({
-    Key? key,
+  IntlYearPicker({
+    super.key,
     DateTime? currentDate,
     required this.firstDate,
     required this.lastDate,
@@ -1188,8 +1290,7 @@ class YearPicker extends StatefulWidget {
     this.calendarMode = Calendar.gregorian,
   })  : assert(!firstDate.isAfter(lastDate)),
         currentDate = IntlDateUtils.dateOnly(currentDate ?? DateTime.now()),
-        initialDate = IntlDateUtils.dateOnly(initialDate ?? selectedDate),
-        super(key: key);
+        initialDate = IntlDateUtils.dateOnly(initialDate ?? selectedDate);
 
   /// The current date.
   ///
@@ -1219,10 +1320,14 @@ class YearPicker extends StatefulWidget {
   final Calendar calendarMode;
 
   @override
-  State<YearPicker> createState() => _YearPickerState();
+  State<IntlYearPicker> createState() => _IntlYearPickerState();
 }
 
-class _YearPickerState extends State<YearPicker> {
+/// Legacy alias for [IntlYearPicker] kept for backward compatibility.
+@Deprecated('Use IntlYearPicker instead to avoid collision with Flutter framework.')
+typedef YearPicker = IntlYearPicker;
+
+class _IntlYearPickerState extends State<IntlYearPicker> {
   late ScrollController _scrollController;
 
   // The approximate number of years necessary to fill the available space.
@@ -1239,15 +1344,29 @@ class _YearPickerState extends State<YearPicker> {
   }
 
   @override
-  void didUpdateWidget(YearPicker oldWidget) {
+  void didUpdateWidget(IntlYearPicker oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (widget.calendarMode != oldWidget.calendarMode) {
+      setState(() {
+        calendarMode = widget.calendarMode;
+      });
+    }
     if (widget.selectedDate != oldWidget.selectedDate) {
       _scrollController.jumpTo(_scrollOffsetForYear(widget.selectedDate));
     }
   }
 
   double _scrollOffsetForYear(DateTime date) {
-    final int initialYearIndex = date.year - widget.firstDate.year;
+    final int initialYearIndex;
+    switch (calendarMode) {
+      case Calendar.gregorian:
+        initialYearIndex = date.year - widget.firstDate.year;
+        break;
+      case Calendar.jalali:
+        initialYearIndex = Jalali.fromDateTime(date).year -
+            Jalali.fromDateTime(widget.firstDate).year;
+        break;
+    }
     final int initialYearRow = initialYearIndex ~/ _yearPickerColumnCount;
     // Move the offset down by 2 rows to approximately center it.
     final int centeredYearRow = initialYearRow - 2;
@@ -1255,6 +1374,7 @@ class _YearPickerState extends State<YearPicker> {
   }
 
   Widget _buildYearItem(BuildContext context, int index) {
+    final DatePickerThemeData datePickerTheme = DatePickerTheme.of(context);
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
     final TextTheme textTheme = Theme.of(context).textTheme;
 
@@ -1293,13 +1413,14 @@ class _YearPickerState extends State<YearPicker> {
     if (isSelected) {
       textColor = colorScheme.onPrimary;
     } else if (isDisabled) {
-      textColor = colorScheme.onSurface.withOpacity(0.38);
+      textColor = colorScheme.onSurface.withValues(alpha: 0.38);
     } else if (isCurrentYear) {
       textColor = colorScheme.primary;
     } else {
-      textColor = colorScheme.onSurface.withOpacity(0.87);
+      textColor = colorScheme.onSurface.withValues(alpha: 0.87);
     }
-    final TextStyle? itemStyle = textTheme.bodyLarge?.apply(color: textColor);
+    final TextStyle? itemStyle =
+        (datePickerTheme.yearStyle ?? textTheme.bodyLarge)?.apply(color: textColor);
 
     BoxDecoration? decoration;
     if (isSelected) {
