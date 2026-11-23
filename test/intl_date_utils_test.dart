@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:intl_date_picker/intl_date_picker.dart';
 import 'package:intl_date_picker/src/localization/strings_en.dart';
 import 'package:intl_date_picker/src/localization/strings_fa.dart';
-import 'package:intl_date_picker/src/utils/intl_date_util.dart';
 import 'package:shamsi_date/shamsi_date.dart';
 
 void main() {

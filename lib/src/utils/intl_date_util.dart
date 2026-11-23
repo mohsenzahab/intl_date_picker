@@ -337,6 +337,19 @@ extension DateHelperExtension on DateTime {
     return year == other.year && month == other.month && day == other.day;
   }
 
+  /// Formats this date into Jalali date string 'YYYY/MM/DD'
+  String toJalaliDateString({bool farsiDigits = false}) {
+    final j = Jalali.fromDateTime(this);
+    final f = j.formatter;
+    final y = f.yyyy;
+    final m = f.mm;
+    final d = f.dd;
+    if (farsiDigits) {
+      return '${IntlDateUtils.formatNumber(y, 'fa', '0000')}/${IntlDateUtils.formatNumber(m, 'fa', '00')}/${IntlDateUtils.formatNumber(d, 'fa', '00')}';
+    }
+    return '$y/$m/$d';
+  }
+
   DateTime addMonth(int count, Calendar calendarMode) {
     if (calendarMode == Calendar.gregorian) {
       return DateTime(year, month + count, 1);
